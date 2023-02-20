@@ -1,8 +1,11 @@
+import 'package:dictionary/infrastructure/service/hive_service.dart';
+import 'package:dictionary/presentation/components/dialog_component.dart';
 import 'package:dictionary/presentation/components/text_filed_component.dart';
 import 'package:dictionary/presentation/routes/routes.dart';
 import 'package:dictionary/presentation/styles/app_colors.dart';
 import 'package:dictionary/presentation/styles/app_icons.dart';
 import 'package:dictionary/presentation/styles/app_styles.dart';
+import 'package:dictionary/utils/hive_keys.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,7 +14,8 @@ import 'package:flutter_svg/svg.dart';
 
 class MainPage extends StatefulWidget {
   final List words;
-  const MainPage({super.key, required this.words});
+  final List favorites;
+  const MainPage({super.key, required this.words, required this.favorites});
 
   @override
   State<MainPage> createState() => _MainPageState();
@@ -148,14 +152,11 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
               accountName: const Text(""),
             ),
             drawerTile(
-              icon: const Icon(
-                Icons.sentiment_satisfied_alt,
-                color: Colors.black,
-              ),
+              icons: Icons.sentiment_satisfied_alt,
               text: "rating".tr(),
             ),
             drawerTile(
-              icon: const Icon(Icons.favorite_border, color: Colors.black),
+              icons: Icons.star_border_rounded,
               text: "favorites".tr(),
               onTap: () => Navigator.push(
                 context,
@@ -163,11 +164,11 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
               ),
             ),
             drawerTile(
-              icon: const Icon(Icons.share, color: Colors.black),
+              icons: Icons.share,
               text: "share".tr(),
             ),
             drawerTile(
-              icon: const Icon(Icons.info_outline, color: Colors.black),
+              icons: Icons.info_outline,
               text: "about".tr(),
               onTap: () {
                 Navigator.pop(context);
@@ -175,7 +176,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
               },
             ),
             drawerTile(
-              icon: const Icon(Icons.exit_to_app_rounded, color: Colors.black),
+              icons: Icons.exit_to_app_rounded,
               text: "exit".tr(),
               onTap: () {
                 SystemChannels.platform.invokeMethod('SystemNavigator.pop');
@@ -195,44 +196,34 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
           controller: scrollController,
           itemCount: items.length,
           itemBuilder: (context, index) {
-            return ListTile(
-              onTap: () => showdialog(
-                  ctx: context,
-                  title: items[index]
-                      [tabController.index == 1 ? 'uzbek' : 'english'],
-                  subtitle: items[index]
-                      [tabController.index == 1 ? 'english' : 'uzbek']),
-              title: Text(
-                items[index][tabController.index == 1 ? 'uzbek' : 'english'],
-                style: AppTextStyles.medium.copyWith(
-                  fontSize: 18.sp,
-                  color: Colors.black,
-                ),
-              ),
-              subtitle: Text(
-                items[index][tabController.index == 1 ? 'english' : 'uzbek'],
-                style: AppTextStyles.regular.copyWith(
-                  fontSize: 18.sp,
-                  color: AppColors.disabledTextColor,
-                ),
-              ),
-            );
+            String uzbek = tabController.index == 1
+                ? items[index].uzbek
+                : items[index].english;
+            String english = tabController.index == 1
+                ? items[index].english
+                : items[index].uzbek;
+            if (widget.favorites.map((e) => e.id).contains(items[index].id)) {
+              return wordTile(
+                index,
+                context,
+                uzbek,
+                english,
+                true,
+              );
+            } else {
+              return wordTile(
+                index,
+                context,
+                uzbek,
+                english,
+              );
+            }
           },
-          prototypeItem: ListTile(
-            title: Text(
-              "",
-              style: AppTextStyles.medium.copyWith(
-                fontSize: 18.sp,
-                color: Colors.black,
-              ),
-            ),
-            subtitle: Text(
-              "",
-              style: AppTextStyles.regular.copyWith(
-                fontSize: 18.sp,
-                color: AppColors.disabledTextColor,
-              ),
-            ),
+          prototypeItem: wordTile(
+            0,
+            context,
+            "",
+            "",
           ),
         ),
       ),
@@ -245,6 +236,68 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
               curve: Curves.fastOutSlowIn),
           backgroundColor: AppColors.primaryColor,
           child: const Icon(Icons.arrow_upward),
+        ),
+      ),
+    );
+  }
+
+  Padding wordTile(
+      int index, BuildContext context, String uzbek, String english,
+      [bool isSaved = false]) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: ListTile(
+        tileColor: AppColors.white,
+        trailing: IconButton(
+          splashRadius: 20.r,
+          icon: isSaved
+              ? Icon(
+                  Icons.star_rate_rounded,
+                  color: Colors.yellowAccent,
+                  size: 28.sp,
+                )
+              : Icon(
+                  Icons.star_border_rounded,
+                  size: 28.sp,
+                ),
+          onPressed: () {
+            if (!isSaved) {
+              HiveService.writeList(
+                key: HiveKeys.favorites,
+                value: items[index],
+              );
+            } else {
+              HiveService.removeList(
+                key: HiveKeys.favorites,
+                value: items[index],
+              );
+              for (var i = 0; i < widget.favorites.length; i++) {
+                if (widget.favorites[i].id == items[index].id) {
+                  widget.favorites.removeAt(i);
+                }
+              }
+            }
+            setState(() {});
+          },
+        ),
+        onTap: () => DialogComponent.showdialog(
+          ctx: context,
+          title: uzbek,
+          subtitle: english,
+        ),
+        title: Text(
+          uzbek,
+          style: AppTextStyles.medium.copyWith(
+            fontSize: 18.sp,
+            color: Colors.black,
+          ),
+        ),
+        subtitle: Text(
+          english,
+          style: AppTextStyles.regular.copyWith(
+            fontSize: 18.sp,
+            color: AppColors.disabledTextColor,
+          ),
         ),
       ),
     );
@@ -266,7 +319,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     if (query.isNotEmpty) {
       List dummyListData = [];
       for (var item in dummySearchList) {
-        if (item[tabController.index == 0 ? 'english' : 'uzbek']
+        if ((tabController.index == 0 ? item.english : item.uzbek)
             .contains(query)) {
           dummyListData.add(item);
           if (dummyListData.length == 100) break;
@@ -287,56 +340,22 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     }
   }
 
-  ListTile drawerTile(
-      {required String text, required var icon, Function()? onTap}) {
+  ListTile drawerTile({
+    required String text,
+    required IconData icons,
+    Function()? onTap,
+  }) {
     return ListTile(
       onTap: onTap,
-      leading: icon,
+      leading: Icon(
+        icons,
+        color: Colors.black,
+        size: 26.sp,
+      ),
       title: Text(
         text,
         style: AppTextStyles.medium.copyWith(color: Colors.black),
       ),
     );
   }
-
-  Future showdialog({
-    required ctx,
-    required String title,
-    required String subtitle,
-  }) =>
-      showDialog(
-        context: ctx,
-        builder: (ctx) => AlertDialog(
-          title: Center(
-            child: Text(
-              title,
-              style: AppTextStyles.medium.copyWith(
-                fontSize: 18.sp,
-                color: AppColors.primaryColor,
-              ),
-            ),
-          ),
-          content: Text(
-            subtitle,
-            style: AppTextStyles.regular.copyWith(
-              fontSize: 16.sp,
-              color: Colors.black,
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              child: Text(
-                "okay",
-                style: AppTextStyles.medium.copyWith(
-                  color: AppColors.primaryColor,
-                  fontSize: 16.sp,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
 }

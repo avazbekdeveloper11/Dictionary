@@ -1,14 +1,22 @@
+import 'package:dictionary/infrastructure/models/words_model.dart';
 import 'package:dictionary/presentation/pages/app_widget.dart';
 import 'package:dictionary/presentation/styles/app_theme.dart';
 import 'package:dictionary/utils/app_init.dart';
+import 'package:dictionary/utils/hive_keys.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:hive/hive.dart';
 
 void main() async {
   await initializeApp();
+
+  Hive.registerAdapter(WordsModelAdapter());
+  //< Boxes open
+  await Hive.openBox<List>(HiveKeys.favorites);
+  //>
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]).then(
     (_) => runApp(
       EasyLocalization(

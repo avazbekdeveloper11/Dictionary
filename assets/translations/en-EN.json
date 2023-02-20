@@ -1,4 +1,6 @@
 {
+    "network_error": "No Internet",
+    "unknown_error": "Something went wrong",
     "dictionary": "Dictionary",
     "save": "Save",
     "search": "Search words...",
